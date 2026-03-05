@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-mab-darkBlue text-mab-offWhite antialiased;
+  background-image: radial-gradient(circle at top right, rgba(201,162,78,.15), transparent 40%);
+}
+
+.glass {
+  @apply bg-mab-slate/60 backdrop-blur border border-mab-gold/20;
+}

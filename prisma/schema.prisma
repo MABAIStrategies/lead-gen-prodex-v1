@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+model Lead {
+  id               String          @id @default(cuid())
+  companyName      String
+  domain           String          @unique
+  industry         String?
+  status           JobStatus       @default(QUEUED)
+  lastEnrichedAt   DateTime?
+  source           String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  contacts         Contact[]
+  enrichmentJobs   EnrichmentJob[]
+
+  @@index([industry])
+  @@index([status])
+}
+
+model Contact {
+  id                  String           @id @default(cuid())
+  leadId               String
+  fullName             String
+  title                String
+  email                String
+  emailVerified        Boolean          @default(false)
+  smtpStatus           String?
+  confidence           ConfidenceLevel  @default(UNKNOWN)
+  sourceProvider       String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  lead                 Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, email])
+  @@index([confidence])
+}
+
+model EnrichmentJob {
+  id               String     @id @default(cuid())
+  leadId            String
+  status            JobStatus  @default(QUEUED)
+  activeProvider    String?
+  fallbackHistory   Json?
+  attemptLog        Json?
+  errorMessage      String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  lead              Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([leadId])
+}
+
+model ProviderCredential {
+  id              String   @id @default(cuid())
+  provider        String   @unique
+  encryptedApiKey String
+  keyIv           String
+  keyTag          String
+  isEnabled       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
