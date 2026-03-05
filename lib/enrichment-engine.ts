@@ -74,14 +74,47 @@ export async function runEnrichmentJob(rawInput: EnrichmentInput) {
       continue;
     }
 
-    const apiKey = decryptApiKey(credential.encryptedApiKey, credential.keyIv, credential.keyTag);
-    const result = await provider.execute(input, apiKey);
+    let result: Awaited<ReturnType<typeof provider.execute>> | null = null;
+
+    try {
+      const apiKey = decryptApiKey(credential.encryptedApiKey, credential.keyIv, credential.keyTag);
+      result = await provider.execute(input, apiKey);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown provider execution error';
+      console.error(`[ENRICHMENT_ENGINE_ERROR] Provider ${provider.name} failed for job ${job.id}:`, error);
+
+      attemptLog.push({ provider: provider.name, success: false, reason: message });
+      fallbackHistory.push(`${provider.name}:exception`);
+
+      await prisma.enrichmentJob.update({
+        where: { id: job.id },
+        data: {
+          activeProvider: provider.name,
+          attemptLog,
+          fallbackHistory,
+          errorMessage: message
+        }
+      });
+
+      continue;
+    }
 
     attemptLog.push({ provider: provider.name, success: result.success, reason: result.reason ?? 'ok' });
 
     if (result.rateLimited) {
       setCooldown(provider.name);
       fallbackHistory.push(`${provider.name}:rate-limited`);
+
+      await prisma.enrichmentJob.update({
+        where: { id: job.id },
+        data: {
+          activeProvider: provider.name,
+          attemptLog,
+          fallbackHistory,
+          errorMessage: result.reason ?? 'Provider temporarily rate-limited'
+        }
+      });
+
       continue;
     }
 
@@ -91,6 +124,15 @@ export async function runEnrichmentJob(rawInput: EnrichmentInput) {
     }
 
     fallbackHistory.push(`${provider.name}:no-verified-data`);
+
+    await prisma.enrichmentJob.update({
+      where: { id: job.id },
+      data: {
+        activeProvider: provider.name,
+        attemptLog,
+        fallbackHistory
+      }
+    });
   }
 
   if (successfulContacts.length > 0) {
