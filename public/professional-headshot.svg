@@ -1,0 +1,12 @@
+<svg width="720" height="480" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#071A2D"/>
+      <stop offset="100%" stop-color="#1A2E45"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="480" fill="url(#bg)"/>
+  <circle cx="360" cy="180" r="70" fill="#F6F5EF" opacity="0.9"/>
+  <path d="M230 410c20-95 85-140 130-140s110 45 130 140" fill="#C9A24E"/>
+  <text x="360" y="450" text-anchor="middle" fill="#F6F5EF" font-size="22" font-family="Arial">MAB AI Strategies Leadership</text>
+</svg>
